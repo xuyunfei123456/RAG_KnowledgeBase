@@ -52,6 +52,10 @@ input {
   padding: 4px 10px;
   cursor: pointer;
 }
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 .hint, .meta, .empty { color: var(--mute); font-size: 13px; }
 .error { color: #e03131; }
 .desk { height: 100%; display: flex; flex-direction: column; }
@@ -62,7 +66,7 @@ input {
   flex-direction: column;
   min-width: 0;
 }
-.space-col { width: 180px; flex: none; }
+.space-col { width: 220px; flex: none; }
 .col:nth-child(2) { width: 220px; flex: none; }
 .col:last-child { width: 240px; flex: none; border-right: none; }
 .main { flex: 1; }
@@ -103,3 +107,31 @@ input {
 }
 .drawer h2 { margin: 0 0 12px; font-size: 16px; }
 .drawer form { display: flex; flex-direction: column; gap: 10px; }
+.space-err, .doc-err { padding: 0 12px; }
+.space-item {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.space-item .row { flex: 1; margin-bottom: 0; min-width: 0; }
+.doc-item {
+  border: 1px solid var(--faint);
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+.doc-name {
+  word-break: break-all;
+}
+.doc-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.doc-st { margin-right: auto; }
+.doc-st { font-size: 12px; color: var(--mute); }
+.doc-st.processing { color: var(--active); }
+.doc-st.ready { color: #2f9e44; }
+.doc-st.failed { color: #e03131; }

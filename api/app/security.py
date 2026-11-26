@@ -4,11 +4,11 @@ import hmac
 import os
 
 from fastapi import Depends, HTTPException, Request
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
 from app.models import Account
+from app.repositories import accounts as accounts_repo
 
 
 def hash_password(plain: str) -> str:
@@ -28,7 +28,7 @@ async def current_account(request: Request, db: AsyncSession = Depends(get_db)) 
     account_id = request.session.get("account_id")
     if not account_id:
         raise HTTPException(status_code=401, detail="未登录")
-    account = await db.scalar(select(Account).where(Account.id == account_id))
+    account = await accounts_repo.get_by_id(db, account_id)
     if account is None:
         request.session.clear()
         raise HTTPException(status_code=401, detail="未登录")

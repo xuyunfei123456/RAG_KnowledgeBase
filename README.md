@@ -6,7 +6,8 @@ Python 环境和依赖只用 **uv**，不要用 pip / conda。依赖声明在 `p
 
 1. 打开 Electerm SSH 隧道，让本机 `127.0.0.1:5432` 能连上远端 PostgreSQL（库名 / 用户 / 密码均为 `rag`）。
 2. 仓库根目录复制 `.env.example` 为 `.env`，填好 `DATABASE_URL` 以及生成模型、embedding 两套供应商配置（密钥和地址不要混用）。
-3. 在仓库根目录执行：
+3. PDF/Word 解析走旁边的 MinerU 项目（不要装进本仓库）：`C:\code\RAG\MinerU`，执行 `.\start.ps1`，探活 http://127.0.0.1:8001/v1/health 。手册见该目录 README。
+4. 在仓库根目录执行：
 
 ```powershell
 uv sync

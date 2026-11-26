@@ -1,8 +1,12 @@
 # 运行配置。密钥和引导账号只从环境变量读。
+from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# api/app/config.py → 仓库根。原文件和 LightRAG 缓存都相对这里。
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
@@ -23,7 +27,12 @@ class Settings(BaseSettings):
     embedding_api_key: str = ""
     embedding_base_url: str = ""
     embedding_model: str = ""
-    embedding_dim: int = 1536
+    embedding_dim: int = 1024
+
+    # 本机 MinerU api-server。不要把 mineru 包装进本仓库。
+    mineru_api_url: str = "http://127.0.0.1:8001"
+    mineru_tier: str = "flash"
+    mineru_ocr_mode: str = "txt"
 
     @computed_field
     @property

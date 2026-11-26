@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import * as api from "./api";
 import { LoginPage } from "./pages/Login";
-import { Workbench } from "./pages/Workbench";
+import { Workbench } from "./pages/workbench";
 
 export function App() {
   const [account, setAccount] = useState<api.Account | null>(null);

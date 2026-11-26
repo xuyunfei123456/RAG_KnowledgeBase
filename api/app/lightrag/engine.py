@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import asyncio
 import os
-from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -11,9 +10,9 @@ from lightrag import LightRAG, QueryParam
 from lightrag.llm.openai import openai_complete_if_cache, openai_embed
 from lightrag.utils import wrap_embedding_func_with_attrs
 
-from app.config import settings
+from app.config import REPO_ROOT, settings
 
-WORKING_DIR = Path(__file__).resolve().parents[2] / "data" / "lightrag_cache"
+WORKING_DIR = REPO_ROOT / "data" / "lightrag_cache"
 
 _lock = asyncio.Lock()
 _instances: dict[str, LightRAG] = {}
@@ -113,6 +112,11 @@ async def insert_text(workspace: str, text: str, file_path: str | None = None) -
     return await rag.ainsert(text, **kwargs)
 
 
+async def insert_texts(workspace: str, texts: list[str], file_paths: list[str]) -> str:
+    rag = await get_rag(workspace)
+    return await rag.ainsert(texts, file_paths=file_paths)
+
+
 async def mix_query(workspace: str, question: str) -> dict[str, Any]:
     rag = await get_rag(workspace)
     result = await rag.aquery_llm(
@@ -152,6 +156,11 @@ async def mix_query(workspace: str, question: str) -> dict[str, Any]:
         ],
         "metadata": result.get("metadata") or {},
     }
+
+
+async def forget_workspace(workspace: str) -> None:
+    async with _lock:
+        _instances.pop(workspace, None)
 
 
 async def close_all() -> None:

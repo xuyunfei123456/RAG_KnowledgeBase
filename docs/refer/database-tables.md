@@ -11,6 +11,7 @@ flowchart TB
   subgraph 产品
     accounts
     knowledge_spaces
+    documents
   end
   subgraph 文档流水线
     doc_status["lightrag_doc_status"]
@@ -30,6 +31,7 @@ flowchart TB
     v_ent["lightrag_vdb_entity_*"]
     v_rel["lightrag_vdb_relation_*"]
   end
+  knowledge_spaces --> documents
   knowledge_spaces -->|"lightrag_workspace"| doc_status
   doc_status --> doc_full
   doc_full --> doc_chunks
@@ -69,6 +71,21 @@ flowchart TB
 | `name` | 界面显示名 |
 | `lightrag_workspace` | 对应 LightRAG 的 workspace，唯一、不可变 |
 | `created_at` | 创建时间 |
+
+### documents
+
+产品自己的文档记录。原文件在 `data/originals/{space_id}/{id}/`，不进 LightRAG 表。第 1 步上传后 `status` 为 `processing`，建库成功/失败在第 2 步改成 `ready` / `failed`。
+
+| 列 | 含义 |
+|---|---|
+| `id` | 主键 |
+| `space_id` | 所属知识空间 |
+| `filename` | 界面文件名，打开原文时用这个名字 |
+| `kind` | `pdf` / `docx` / `markdown` |
+| `stored_path` | 相对 `data/originals` 的路径，创建后不改 |
+| `status` | `processing` / `ready` / `failed` |
+| `error_msg` | 失败原因 |
+| `created_at` / `updated_at` | 时间 |
 
 ## LightRAG：文档流水线
 
