@@ -1,0 +1,29 @@
+---
+description: 本项目 Python 只使用 uv 管理环境和依赖
+alwaysApply: true
+---
+
+# Python 只用 uv
+
+本仓库的 Python 解释器、虚拟环境和依赖一律用 uv，禁止 pip、conda、poetry、`python -m venv`。
+
+依赖只写在仓库根目录的 `pyproject.toml`，锁文件是 `uv.lock`。不要再维护 `requirements.txt`。
+
+```bash
+# 按锁文件安装（仓库根目录）
+uv sync
+
+# 新增 / 移除依赖
+uv add fastapi
+uv remove unused-pkg
+
+# 在项目环境里执行
+uv run python -c "import fastapi; print(fastapi.__version__)"
+uv run uvicorn --app-dir api app.main:app --host 127.0.0.1 --port 8000
+
+# 查看已安装依赖
+uv tree
+uv pip list
+```
+
+禁止：`pip install`、`pip freeze`、`python -m pip`、手动改 `.venv`。

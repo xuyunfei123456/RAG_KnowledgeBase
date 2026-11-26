@@ -1,0 +1,105 @@
+:root {
+  --ink: #1e1e1e;
+  --line: #868e96;
+  --faint: #adb5bd;
+  --mute: #868e96;
+  --fill: #f1f3f5;
+  --active: #1971c2;
+  --active-fill: #d0ebff;
+}
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { font: 14px/1.4 system-ui, sans-serif; color: var(--ink); background: #fff; }
+button, input { font: inherit; }
+.boot { padding: 48px; color: var(--mute); }
+.topbar {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--faint);
+  background: var(--fill);
+}
+.brand { font-weight: 600; }
+.top-right { display: flex; align-items: center; gap: 12px; }
+.who { color: var(--mute); }
+.login-shell { height: 100%; display: flex; flex-direction: column; }
+.login-card {
+  width: 360px;
+  margin: 80px auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.login-card h1 { margin: 0 0 8px; font-size: 22px; }
+label { display: flex; flex-direction: column; gap: 6px; }
+input {
+  border: 1px solid var(--faint);
+  padding: 8px 10px;
+  background: #fff;
+}
+.primary {
+  background: var(--active-fill);
+  border: 2px solid var(--active);
+  color: var(--active);
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.ghost {
+  background: transparent;
+  border: 1px solid var(--faint);
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.hint, .meta, .empty { color: var(--mute); font-size: 13px; }
+.error { color: #e03131; }
+.desk { height: 100%; display: flex; flex-direction: column; }
+.cols { flex: 1; display: flex; min-height: 0; }
+.col {
+  border-right: 1px solid var(--faint);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.space-col { width: 180px; flex: none; }
+.col:nth-child(2) { width: 220px; flex: none; }
+.col:last-child { width: 240px; flex: none; border-right: none; }
+.main { flex: 1; }
+.col-h {
+  height: 32px;
+  padding: 8px 10px;
+  background: var(--fill);
+  border-bottom: 1px solid var(--faint);
+  font-weight: 600;
+}
+.list { list-style: none; margin: 0; padding: 8px; }
+.row {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--faint);
+  background: #fff;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+.row.active {
+  border: 2px solid var(--active);
+  background: var(--active-fill);
+  color: var(--active);
+}
+.inline { display: flex; gap: 6px; padding: 8px; }
+.inline input { flex: 1; min-width: 0; }
+.col .empty, .main .meta { padding: 16px 12px; }
+.drawer {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  width: 280px;
+  bottom: 0;
+  border-left: 1px solid var(--active);
+  background: #fff;
+  padding: 16px;
+}
+.drawer h2 { margin: 0 0 12px; font-size: 16px; }
+.drawer form { display: flex; flex-direction: column; gap: 10px; }
