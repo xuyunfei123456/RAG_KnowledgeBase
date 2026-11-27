@@ -12,14 +12,24 @@ function allowedFile(name: string): boolean {
   return /\.(pdf|docx|md|markdown)$/i.test(name);
 }
 
-export function Documents({ space }: { space: Space | null }) {
+export function Documents({
+  space,
+  onDocumentsChanged,
+}: {
+  space: Space | null;
+  onDocumentsChanged: () => void;
+}) {
   const [docs, setDocs] = useState<Document[]>([]);
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState("");
+  const [replacingId, setReplacingId] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
+  const replaceInput = useRef<HTMLInputElement>(null);
+  const replaceTarget = useRef("");
 
   const processing = docs.some((d) => d.status === "processing");
+  const busy = uploading || Boolean(deletingId) || Boolean(replacingId);
 
   useEffect(() => {
     if (!space) {
@@ -54,7 +64,7 @@ export function Documents({ space }: { space: Space | null }) {
   async function onUpload(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (!file || !space || uploading) return;
+    if (!file || !space || busy) return;
     if (!allowedFile(file.name)) {
       setError("只接受 PDF、Word、Markdown");
       return;
@@ -71,14 +81,44 @@ export function Documents({ space }: { space: Space | null }) {
     }
   }
 
+  function onReplaceClick(doc: Document) {
+    if (!space || busy || doc.status === "processing") return;
+    replaceTarget.current = doc.id;
+    replaceInput.current?.click();
+  }
+
+  async function onReplace(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    const docId = replaceTarget.current;
+    replaceTarget.current = "";
+    if (!file || !space || !docId || busy) return;
+    if (!allowedFile(file.name)) {
+      setError("只接受 PDF、Word、Markdown");
+      return;
+    }
+    setReplacingId(docId);
+    setError("");
+    try {
+      const next = await api.replaceDocument(space.id, docId, file);
+      setDocs((xs) => xs.map((d) => (d.id === next.id ? next : d)));
+      onDocumentsChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "替换失败");
+    } finally {
+      setReplacingId("");
+    }
+  }
+
   async function onDelete(doc: Document) {
-    if (!space || deletingId) return;
+    if (!space || busy || doc.status === "processing") return;
     if (!window.confirm("确定删除「" + doc.filename + "」？")) return;
     setDeletingId(doc.id);
     setError("");
     try {
       await api.deleteDocument(space.id, doc.id);
       setDocs((xs) => xs.filter((d) => d.id !== doc.id));
+      onDocumentsChanged();
     } catch (err) {
       setError(err instanceof Error ? err.message : "删除失败");
     } finally {
@@ -104,10 +144,17 @@ export function Documents({ space }: { space: Space | null }) {
               hidden
               onChange={onUpload}
             />
+            <input
+              ref={replaceInput}
+              type="file"
+              accept=".pdf,.docx,.md,.markdown"
+              hidden
+              onChange={onReplace}
+            />
             <button
               type="button"
               className="primary"
-              disabled={uploading}
+              disabled={busy}
               onClick={() => fileInput.current?.click()}
             >
               {uploading ? "上传中" : "上传"}
@@ -127,7 +174,15 @@ export function Documents({ space }: { space: Space | null }) {
                   <button
                     type="button"
                     className="ghost"
-                    disabled={deletingId === d.id}
+                    disabled={busy || d.status === "processing"}
+                    onClick={() => onReplaceClick(d)}
+                  >
+                    {replacingId === d.id ? "替换中" : "替换"}
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={busy || d.status === "processing"}
                     onClick={() => onDelete(d)}
                   >
                     {deletingId === d.id ? "删除中" : "删除"}

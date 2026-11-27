@@ -2,6 +2,8 @@ import { FormEvent, useEffect, useState } from "react";
 import * as api from "../../api";
 import type { Space } from "../../api";
 import { AccountDrawer } from "./AccountDrawer";
+import { Chat } from "./Chat";
+import { Conversations } from "./Conversations";
 import { Documents } from "./Documents";
 import { Spaces } from "./Spaces";
 
@@ -20,11 +22,23 @@ export function Workbench({
   const [creatingSpace, setCreatingSpace] = useState(false);
   const [deletingSpaceId, setDeletingSpaceId] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [convStamp, setConvStamp] = useState(0);
+  const [docStamp, setDocStamp] = useState(0);
+
+  function selectSpace(space: Space | null) {
+    setCurrent(space);
+    setConversationId(null);
+  }
 
   async function reload() {
     const list = await api.listSpaces();
     setSpaces(list);
-    setCurrent((prev) => list.find((s) => s.id === prev?.id) ?? list[0] ?? null);
+    setCurrent((prev) => {
+      const next = list.find((s) => s.id === prev?.id) ?? list[0] ?? null;
+      if (next?.id !== prev?.id) setConversationId(null);
+      return next;
+    });
   }
 
   useEffect(() => {
@@ -42,7 +56,7 @@ export function Workbench({
       const space = await api.createSpace(name);
       setSpaceName("");
       setSpaces((xs) => [...xs, space]);
-      setCurrent(space);
+      selectSpace(space);
     } catch (err) {
       setSpaceError(err instanceof Error ? err.message : "创建失败");
     } finally {
@@ -61,7 +75,7 @@ export function Workbench({
       await api.deleteSpace(space.id);
       const next = spaces.filter((s) => s.id !== space.id);
       setSpaces(next);
-      setCurrent((prev) => (prev?.id === space.id ? (next[0] ?? null) : prev));
+      if (current?.id === space.id) selectSpace(next[0] ?? null);
     } catch (err) {
       setSpaceError(err instanceof Error ? err.message : "删除失败");
     } finally {
@@ -104,22 +118,23 @@ export function Workbench({
           deletingId={deletingSpaceId}
           onNameChange={setSpaceName}
           onCreate={addSpace}
-          onSelect={setCurrent}
+          onSelect={selectSpace}
           onDelete={onDeleteSpace}
         />
-        <aside className="col">
-          <div className="col-h">对话</div>
-          <p className="empty">下一批次：在当前空间提问</p>
-        </aside>
-        <main className="col main">
-          <div className="col-h">{current ? current.name : "问答"}</div>
-          {current ? (
-            <p className="meta">当前只检索这个空间（LightRAG workspace：{current.lightrag_workspace}）</p>
-          ) : (
-            <p className="empty">先创建一个知识空间</p>
-          )}
-        </main>
-        <Documents space={current} />
+        <Conversations
+          space={current}
+          currentId={conversationId}
+          stamp={convStamp}
+          onSelect={setConversationId}
+        />
+        <Chat
+          space={current}
+          conversationId={conversationId}
+          docStamp={docStamp}
+          onConversationId={setConversationId}
+          onListDirty={() => setConvStamp((n) => n + 1)}
+        />
+        <Documents space={current} onDocumentsChanged={() => setDocStamp((n) => n + 1)} />
       </div>
       {showAccount ? <AccountDrawer /> : null}
     </div>

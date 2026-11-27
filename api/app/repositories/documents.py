@@ -17,6 +17,12 @@ async def get(db: AsyncSession, doc_id: str) -> Document | None:
     return await db.get(Document, doc_id)
 
 
+async def get_by_filename(db: AsyncSession, space_id: str, filename: str) -> Document | None:
+    return await db.scalar(
+        select(Document).where(Document.space_id == space_id, Document.filename == filename)
+    )
+
+
 async def insert(
     db: AsyncSession,
     *,
@@ -42,6 +48,25 @@ async def insert(
 
 
 async def update_status(db: AsyncSession, row: Document, status: str, error_msg: str | None) -> None:
+    row.status = status
+    row.error_msg = error_msg
+    await db.commit()
+    await db.refresh(row)
+
+
+async def update_file(
+    db: AsyncSession,
+    row: Document,
+    *,
+    filename: str,
+    kind: str,
+    stored_path: str,
+    status: str,
+    error_msg: str | None,
+) -> None:
+    row.filename = filename
+    row.kind = kind
+    row.stored_path = stored_path
     row.status = status
     row.error_msg = error_msg
     await db.commit()

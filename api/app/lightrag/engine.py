@@ -2,15 +2,20 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 from typing import Any
 
 import numpy as np
 from lightrag import LightRAG, QueryParam
+from lightrag.base import BaseVectorStorage
 from lightrag.llm.openai import openai_complete_if_cache, openai_embed
 from lightrag.utils import wrap_embedding_func_with_attrs
 
 from app.config import REPO_ROOT, settings
+from app.parse.page_anchor import split_page_anchor
+
+logger = logging.getLogger(__name__)
 
 WORKING_DIR = REPO_ROOT / "data" / "lightrag_cache"
 
@@ -97,6 +102,8 @@ async def get_rag(workspace: str) -> LightRAG:
             vector_storage="PGVectorStorage",
             graph_storage="PGTableGraphStorage",
             doc_status_storage="PGDocStatusStorage",
+            # 问答缓存按问题键，不随图谱更新；替换/删除后会把旧回答再答出来。
+            enable_llm_cache=False,
             addon_params={"language": "Chinese"},
         )
         await rag.initialize_storages()
@@ -121,7 +128,11 @@ async def mix_query(workspace: str, question: str) -> dict[str, Any]:
     rag = await get_rag(workspace)
     result = await rag.aquery_llm(
         question,
-        param=QueryParam(mode="mix", enable_rerank=False),
+        param=QueryParam(
+            mode="mix",
+            enable_rerank=False,
+            user_prompt="若检索到的资料不足以回答问题，回答必须且只能是：知识库中未找到",
+        ),
     )
     data = result.get("data") or {}
     llm = result.get("llm_response") or {}
@@ -156,6 +167,79 @@ async def mix_query(workspace: str, question: str) -> dict[str, Any]:
         ],
         "metadata": result.get("metadata") or {},
     }
+
+
+_DOC_PAGE_SIZE = 200
+
+
+async def _doc_ids_for_filename(rag: LightRAG, filename: str) -> list[str]:
+    """产品一份文档对应 Markdown 一行或 PDF/Word 每页一行，用 file_path 文件名对齐。"""
+    matched: list[str] = []
+    page = 1
+    while True:
+        rows, total = await rag.doc_status.get_docs_paginated(page=page, page_size=_DOC_PAGE_SIZE)
+        for doc_id, status in rows:
+            raw = (status.file_path or "").strip()
+            name, _page = split_page_anchor(raw) if raw else ("", None)
+            if name == filename:
+                matched.append(doc_id)
+        if not rows or page * _DOC_PAGE_SIZE >= total:
+            break
+        page += 1
+    return matched
+
+
+async def delete_by_filename(workspace: str, filename: str) -> None:
+    """按产品文件名删掉该空间里对应的 LightRAG 文档（含分页）。串行 adelete。"""
+    rag = await get_rag(workspace)
+    doc_ids = await _doc_ids_for_filename(rag, filename)
+    for doc_id in doc_ids:
+        result = await rag.adelete_by_doc_id(doc_id)
+        if result.status in {"success", "not_found"}:
+            continue
+        logger.error("adelete_by_doc_id %s: %s %s", doc_id, result.status, result.message)
+        raise RuntimeError("从知识库删除文档失败")
+
+
+async def drop_workspace(workspace: str) -> None:
+    """清空该 workspace 在 PostgreSQL 里的图谱 / 向量 / 块，不是 DROP TABLE。"""
+    rag = await get_rag(workspace)
+    storages = [
+        rag.text_chunks,
+        rag.full_docs,
+        rag.full_entities,
+        rag.full_relations,
+        rag.entity_chunks,
+        rag.relation_chunks,
+        rag.entities_vdb,
+        rag.relationships_vdb,
+        rag.chunks_vdb,
+        rag.chunk_entity_relation_graph,
+        rag.doc_status,
+    ]
+    tasks = []
+    for storage in storages:
+        if storage is None:
+            continue
+        if isinstance(storage, BaseVectorStorage):
+            tasks.append(storage.drop_all_models())
+        else:
+            tasks.append(storage.drop())
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    errors: list[str] = []
+    for result in results:
+        if isinstance(result, asyncio.CancelledError):
+            raise result
+        if isinstance(result, BaseException):
+            logger.error("drop_workspace %s 失败: %s", workspace, result)
+            errors.append(str(result))
+            continue
+        if isinstance(result, dict) and result.get("status") != "success":
+            message = str(result.get("message") or result)
+            logger.error("drop_workspace %s 失败: %s", workspace, message)
+            errors.append(message)
+    if errors:
+        raise RuntimeError("清空知识库失败")
 
 
 async def forget_workspace(workspace: str) -> None:

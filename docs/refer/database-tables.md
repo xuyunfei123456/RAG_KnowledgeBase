@@ -12,6 +12,8 @@ flowchart TB
     accounts
     knowledge_spaces
     documents
+    conversations
+    messages
   end
   subgraph 文档流水线
     doc_status["lightrag_doc_status"]
@@ -32,6 +34,9 @@ flowchart TB
     v_rel["lightrag_vdb_relation_*"]
   end
   knowledge_spaces --> documents
+  knowledge_spaces --> conversations
+  accounts --> conversations
+  conversations --> messages
   knowledge_spaces -->|"lightrag_workspace"| doc_status
   doc_status --> doc_full
   doc_full --> doc_chunks
@@ -82,10 +87,37 @@ flowchart TB
 | `space_id` | 所属知识空间 |
 | `filename` | 界面文件名，打开原文时用这个名字 |
 | `kind` | `pdf` / `docx` / `markdown` |
-| `stored_path` | 相对 `data/originals` 的路径，创建后不改 |
+| `stored_path` | 相对 `data/originals` 的路径，替换时随文件名更新 |
 | `status` | `processing` / `ready` / `failed` |
 | `error_msg` | 失败原因 |
 | `created_at` / `updated_at` | 时间 |
+
+### conversations
+
+产品侧对话。按「提问者 + 知识空间」落库。第一版列表按这两维过滤，不校验「只能打开自己的对话」。
+
+| 列 | 含义 |
+|---|---|
+| `id` | 主键 |
+| `space_id` | 所属知识空间 |
+| `account_id` | 提问者 |
+| `title` | 首问截断，最多 80 字 |
+| `created_at` / `updated_at` | 创建时间；每次追问更新 |
+
+### messages
+
+对话里的一问或一答。来源标注只写在助手消息上。
+
+| 列 | 含义 |
+|---|---|
+| `id` | 主键 |
+| `conversation_id` | 所属对话 |
+| `role` | `user` / `assistant` |
+| `content` | 问题或回答正文 |
+| `sources` | JSONB。助手消息：`[{filename, snippet, doc_id, page}, ...]`；用户消息为空。读对话时另加 `deleted`（文档行是否还在），不回写这列 |
+| `created_at` | 时间 |
+
+`doc_id` 在提问时按当前空间文件名解析写入。读旧对话时若该文档已删，响应里 `deleted=true`，界面显示「原文已删除」且不能打开。`page` 来自 LightRAG `file_path` 的 `#page=n`，不是模型自报页码。
 
 ## LightRAG：文档流水线
 

@@ -1,4 +1,4 @@
-import { awaitable, errorDetail, parse } from "./client";
+import { awaitable, parse } from "./client";
 import type { Document } from "./types";
 
 export function listDocuments(spaceId: string) {
@@ -9,6 +9,14 @@ export function uploadDocument(spaceId: string, file: File) {
   const body = new FormData();
   body.append("file", file);
   return parse<Document>(awaitable(`/api/spaces/${spaceId}/documents`, { method: "POST", body }));
+}
+
+export function replaceDocument(spaceId: string, docId: string, file: File) {
+  const body = new FormData();
+  body.append("file", file);
+  return parse<Document>(
+    awaitable(`/api/spaces/${spaceId}/documents/${docId}`, { method: "PUT", body }),
+  );
 }
 
 export function deleteDocument(spaceId: string, docId: string) {

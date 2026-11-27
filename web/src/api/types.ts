@@ -9,3 +9,30 @@ export type Document = {
   error_msg: string | null;
   created_at: string;
 };
+
+export type Source = {
+  filename: string;
+  snippet: string;
+  doc_id: string | null;
+  page: number | null;
+  deleted: boolean;
+};
+
+export type ChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  sources: Source[] | null;
+  created_at: string;
+};
+
+export type Conversation = {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ConversationDetail = Conversation & {
+  messages: ChatMessage[];
+};

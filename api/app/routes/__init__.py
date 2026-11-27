@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
-from app.routes import auth, documents, rag, spaces
+from app.routes import auth, conversations, documents, rag, spaces
 from app.services.errors import (
     AuthError,
     ConflictError,
@@ -18,6 +18,7 @@ def mount(app: FastAPI) -> None:
     app.include_router(auth.router)
     app.include_router(spaces.router)
     app.include_router(documents.router)
+    app.include_router(conversations.router)
     app.include_router(rag.router)
 
 

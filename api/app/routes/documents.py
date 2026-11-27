@@ -61,6 +61,19 @@ async def get_original(
     )
 
 
+@router.put("/{doc_id}", response_model=DocumentOut)
+async def replace_document(
+    space_id: str,
+    doc_id: str,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    _account: Account = Depends(current_account),
+):
+    payload = await file.read()
+    row = await documents_service.replace_document(db, space_id, doc_id, file.filename, payload)
+    return document_out(row)
+
+
 @router.delete("/{doc_id}")
 async def delete_document(
     space_id: str,

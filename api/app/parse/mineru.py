@@ -61,6 +61,29 @@ def _zip_bytes(archive: zipfile.ZipFile, name: str) -> bytes | None:
     return None
 
 
+def _annotation_texts(items: object) -> list[str]:
+    if not isinstance(items, list):
+        return []
+    texts: list[str] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        text = (item.get("content") or "").strip()
+        if text:
+            texts.append(text)
+    return texts
+
+
+def _block_markdown(block: dict) -> str:
+    """一块进 LightRAG 的文本。表格把表题、表身、脚注收成一段，不拆开。"""
+    body = (block.get("content") or "").strip()
+    if (block.get("type") or "").strip() != "table":
+        return body
+    captions = _annotation_texts(block.get("captions"))
+    footnotes = _annotation_texts(block.get("footnotes"))
+    return "\n\n".join(part for part in [*captions, body, *footnotes] if part)
+
+
 def pages_from_structured(payload: dict, filename: str) -> list[tuple[str, str]]:
     pages = payload.get("pages")
     if not isinstance(pages, list) or not pages:
@@ -74,7 +97,7 @@ def pages_from_structured(payload: dict, filename: str) -> list[tuple[str, str]]
         for block in page.get("blocks") or []:
             if not isinstance(block, dict):
                 continue
-            text = (block.get("content") or "").strip()
+            text = _block_markdown(block)
             if text:
                 parts.append(text)
         body = "\n\n".join(parts).strip()
@@ -178,7 +201,7 @@ def _pages_from_zip(zip_payload: bytes, filename: str) -> ParsePages:
         raise MinerUError("MinerU structured_content.json 格式不对")
     if not markdown.decode("utf-8").strip():
         raise MinerUError("MinerU 解析结果是空的")
-    # 进 LightRAG 的是每页 Markdown 文本；JSON 只当页索引，原文不进图谱。
+    # 进 LightRAG 的是每页 Markdown 文本（表格含表题和脚注）；JSON 只当页索引。
     pages = pages_from_structured(payload, filename)
     return ParsePages(pages=pages, markdown=markdown, structured=structured)
 
